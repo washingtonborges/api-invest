@@ -1,7 +1,7 @@
 export default class Token {
-    iat: number;
+  iat: number;
 
-    exp: number;
+  exp: number;
 
-    sub: string;
+  sub: string;
 }
