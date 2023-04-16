@@ -3,7 +3,7 @@ require('dotenv').config();
 module.exports = {
   type: 'mongodb',
   url: process.env.MONGODB_URL,
-  ssl: true,
+  ssl: false,
   useNewUrlParser: true,
   synchronize: true,
   logging: true,
