@@ -5,8 +5,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node-dev --inspect --transpile-only --ignore-watch node_modules src/server.ts",
-    "typeorm": "ts-node-dev ./node_modules/typeorm/cli.js"
+    "start": "npm run run-migration && ts-node-dev --inspect --transpile-only --ignore-watch node_modules src/server.ts",
+    "run-migration": "ts-node-dev ./node_modules/typeorm/cli.js migration:run"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
