@@ -18,7 +18,7 @@ export default class LoginService {
       email
     );
     if (!validUser) {
-      throw new AppError('Wrong password or email/username', 404);
+      throw new AppError('Wrong password or email/username', 401);
     }
     const passwordMatched = await compare(password, validUser.password);
     if (!passwordMatched) {
