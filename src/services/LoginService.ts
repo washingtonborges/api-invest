@@ -3,7 +3,6 @@ import { sign } from 'jsonwebtoken';
 import UserRepository from '../repositories/UserRepository';
 import authConfig from '../config/auth';
 import AppError from '../errors/AppError';
-import UserToken from '../models/tokens/UserToken';
 
 export default class LoginService {
   private userRepository = new UserRepository();
@@ -12,7 +11,7 @@ export default class LoginService {
     username: string,
     email: string,
     password: string
-  ): Promise<UserToken> {
+  ): Promise<string> {
     const validUser = await this.userRepository.getByUsernameOrEmail(
       username,
       email
@@ -25,10 +24,15 @@ export default class LoginService {
       throw new AppError('Wrong password or email/username', 401);
     }
     const { secret, expiresIn } = authConfig.jwt;
-    const token = sign({}, secret, {
+    const payload = {
+      id: validUser._id,
+      email: validUser.email,
+      name: validUser.name
+    };
+    const token = sign(payload, secret, {
       subject: validUser._id.toString(),
       expiresIn
     });
-    return { validUser, token };
+    return token;
   }
 }
