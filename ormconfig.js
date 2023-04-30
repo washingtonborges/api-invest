@@ -2,6 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   type: 'mongodb',
+  database: 'invest',
   url: process.env.MONGODB_URL,
   ssl: false,
   useNewUrlParser: true,

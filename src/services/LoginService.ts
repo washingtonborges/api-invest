@@ -23,7 +23,7 @@ export default class LoginService {
     if (!passwordMatched) {
       throw new AppError('Wrong password or email/username', 401);
     }
-    const { secret, expiresIn } = authConfig.jwt;
+    const { secret, expiresIn } = await authConfig.jwt;
     const payload = {
       id: validUser._id,
       email: validUser.email,
