@@ -1,6 +1,6 @@
 import { EntityRepository, Repository, getCustomRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
-import Product from '../models/Product';
+import Product from '../models/Stock';
 
 @EntityRepository(Product)
 export default class ProductRepository extends Repository<Product> {

@@ -1,12 +1,13 @@
 {
-  "name": "Api Invest",
+  "name": "ApiInvest",
   "version": "0.0.1",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
     "build": "tsc",
     "start": "npm run run-migration && ts-node-dev --inspect --transpile-only --ignore-watch node_modules src/server.ts",
-    "run-migration": "ts-node-dev ./node_modules/typeorm/cli.js migration:run"
+    "run-migration": "ts-node-dev ./node_modules/typeorm/cli.js migration:run",
+    "create-migration": "ts-node-dev ./node_modules/typeorm/cli.js migration:create --dir src/database/migrations -n"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",

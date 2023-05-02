@@ -1,16 +1,25 @@
 import { Entity, Column, ObjectIdColumn, ObjectID } from 'typeorm';
 
-@Entity('product')
+@Entity('stock')
 export default class Product {
   @ObjectIdColumn()
   _id: ObjectID;
 
   @Column()
-  name: string;
+  symbol: string;
 
   @Column()
-  description: string;
+  quantity: number;
 
   @Column()
-  color: string;
+  date: Date;
+
+  @Column()
+  price: number;
+
+  @Column()
+  fee: string;
+
+  @Column()
+  operation: boolean;
 }
