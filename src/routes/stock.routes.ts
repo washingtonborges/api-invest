@@ -2,10 +2,13 @@ import { Router } from 'express';
 import StockController from '../controllers/StockController';
 import Stock from '../models/Stock';
 import 'express-async-errors';
+import authenticate from '../middlewares/authenticate';
 
 const stockController = new StockController();
 
 const StockRouter = Router();
+
+StockRouter.use(authenticate);
 
 StockRouter.get('/', async (request, response) => {
   const allStocks = await stockController.getAll();
