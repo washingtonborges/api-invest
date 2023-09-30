@@ -160,9 +160,7 @@ export default class InvoiceService {
   }
 
   private getSettlementPrice(text: string): number {
-    const regex = new RegExp(
-      'Valor Líquido das Operações (-?\\d+(?:,\\d{2})?)'
-    );
+    const regex = new RegExp(/Valor Líquido das Operações (\S+)\n\nCompras/);
     const matches = this.getArrayByRegExp(text, regex);
     let price = 0;
 
@@ -184,10 +182,10 @@ export default class InvoiceService {
   }
 
   private getSettlementTotal(text: string): number {
-    const match: RegExpMatchArray | null = text.match(/(\d+,\d+)\d+,\d+/);
+    const match: RegExpMatchArray | null = text.match(/ (\S+)\n\nOperações/);
     let price = 0;
     if (match !== null) {
-      const monetaryValue: string = match[0];
+      const monetaryValue: string = match[1];
       const middleIndex: number = Math.floor(monetaryValue.length / 2);
 
       const leftPart: string = monetaryValue.slice(0, middleIndex);
