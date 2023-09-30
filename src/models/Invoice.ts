@@ -19,7 +19,7 @@ export default class Invoice {
   public taxForEachOperation: number;
 
   private calculateTax(): number {
-    return this.settlement.price - this.totalTransaction;
+    return this.settlement.total - this.totalTransaction;
   }
 
   private calculateTaxForEachOperation(): number {
@@ -42,9 +42,9 @@ export default class Invoice {
     this.tradingDate = tradingDate;
     this.settlement = settlement;
     this.totalTransaction = totalTransaction;
-    this.tax = parseFloat(this.calculateTax().toFixed(2));
+    this.tax = parseFloat(this.calculateTax().toFixed(3));
     this.taxForEachOperation = parseFloat(
-      this.calculateTaxForEachOperation().toFixed(2)
+      this.calculateTaxForEachOperation().toFixed(3)
     );
   }
 }
