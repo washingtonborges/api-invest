@@ -1,11 +1,26 @@
 import { readPdfText } from 'pdf-text-reader';
 import Price from '../models/Price';
 import Operation from '../models/Operation';
+import Invoice from '../models/Invoice';
 
-export default class PdfService {
-  public async Read(path: string): Promise<Operation[]> {
+export default class InvoiceService {
+  public async read(path: string): Promise<Invoice> {
     const text: string = await readPdfText({ url: path });
-    return this.getOperations(text);
+    return this.get(text);
+  }
+
+  private get(text: string): Invoice {
+    const operations = this.getOperations(text);
+    const invoice = new Invoice(
+      text,
+      operations,
+      0,
+      new Date(),
+      new Date(),
+      0,
+      0
+    );
+    return invoice;
   }
 
   private getOperations(text: string): Operation[] {
