@@ -1,4 +1,5 @@
 import Operation from './Operation';
+import Settlement from './Settlement';
 
 export default class Invoice {
   public raw: string;
@@ -9,18 +10,22 @@ export default class Invoice {
 
   public tradingDate: Date;
 
-  public date: Date;
-
-  public total: number;
+  public settlement: Settlement;
 
   public totalTransaction: number;
 
-  get tax(): number {
-    return this.total - this.totalTransaction;
+  public tax: number;
+
+  public taxForEachOperation: number;
+
+  private calculateTax(): number {
+    return this.settlement.price - this.totalTransaction;
   }
 
-  get taxForEachOperation(): number {
-    return this.operations?.length > 0 ? this.tax / this.operations.length : 0;
+  private calculateTaxForEachOperation(): number {
+    return this.operations?.length > 0
+      ? this.calculateTax() / this.operations.length
+      : 0;
   }
 
   constructor(
@@ -28,16 +33,18 @@ export default class Invoice {
     operations: Operation[],
     number: number,
     tradingDate: Date,
-    date: Date,
-    total: number,
+    settlement: Settlement,
     totalTransaction: number
   ) {
     this.raw = raw;
     this.operations = operations;
     this.number = number;
     this.tradingDate = tradingDate;
-    this.date = date;
-    this.total = total;
+    this.settlement = settlement;
     this.totalTransaction = totalTransaction;
+    this.tax = parseFloat(this.calculateTax().toFixed(2));
+    this.taxForEachOperation = parseFloat(
+      this.calculateTaxForEachOperation().toFixed(2)
+    );
   }
 }

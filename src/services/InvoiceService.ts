@@ -1,7 +1,9 @@
 import { readPdfText } from 'pdf-text-reader';
+import { parse } from 'date-fns';
 import Price from '../models/Price';
 import Operation from '../models/Operation';
 import Invoice from '../models/Invoice';
+import Settlement from '../models/Settlement';
 
 export default class InvoiceService {
   public async read(path: string): Promise<Invoice> {
@@ -11,14 +13,17 @@ export default class InvoiceService {
 
   private get(text: string): Invoice {
     const operations = this.getOperations(text);
+    const settlement = this.getSettlement(text);
+    const trandingDate = this.getTrandingDate(text);
+    const number = this.getNumber(text);
+    const total = this.getTotal(text);
     const invoice = new Invoice(
       text,
       operations,
-      0,
-      new Date(),
-      new Date(),
-      0,
-      0
+      number,
+      trandingDate,
+      settlement,
+      total
     );
     return invoice;
   }
@@ -55,31 +60,19 @@ export default class InvoiceService {
   }
 
   private getOperation(text: string): Operation {
-    const price: Price = {
-      unitary: 0,
-      total: 0
-    };
-
-    const operation: Operation = {
-      line: '',
-      type: '',
-      symbol: '',
-      price,
-      quantity: 0,
-      success: false
-    };
-
-    operation.line = text;
-    operation.type = this.getOperationType(text);
-    operation.symbol = this.getSymbol(text);
-    operation.price = this.getPrices(text);
-    operation.quantity = this.getQuantity(text);
+    const operation = new Operation(
+      text,
+      this.getOperationType(text),
+      this.getSymbol(text),
+      this.getPrices(text),
+      this.getQuantity(text),
+      false
+    );
     operation.success = this.isSuccess(
       operation.price.unitary,
       operation.quantity,
       operation.price.total
     );
-
     return operation;
   }
 
@@ -145,5 +138,104 @@ export default class InvoiceService {
     sum = parseFloat(sum.toFixed(2));
     const result = sum === totalPrice;
     return result;
+  }
+
+  private getSettlement(text: string): Settlement {
+    const date = this.getSettlementDate(text);
+    const price = this.getSettlementPrice(text);
+    const tax = this.getSettlementTax(text);
+    const total = this.getSettlementTotal(text);
+    return new Settlement(date, price, total, tax);
+  }
+
+  private getSettlementDate(text: string): Date {
+    const regex = new RegExp(/Líquido para (\d{2}\/\d{2}\/\d{4})/);
+    const matches = this.getArrayByRegExp(text, regex);
+    let date: Date = new Date();
+
+    if (matches && matches.length > 0) {
+      date = parse(matches[1], 'dd/MM/yyyy', new Date());
+    }
+    return date;
+  }
+
+  private getSettlementPrice(text: string): number {
+    const regex = new RegExp(
+      'Valor Líquido das Operações (-?\\d+(?:,\\d{2})?)'
+    );
+    const matches = this.getArrayByRegExp(text, regex);
+    let price = 0;
+
+    if (matches && matches.length > 0) {
+      price = parseFloat(matches[1].replace(/\./g, '').replace(',', '.'));
+    }
+    return price;
+  }
+
+  private getSettlementTax(text: string): number {
+    const regex = new RegExp('Taxa de Liquidação (-?\\d+(?:,\\d{2})?)');
+    const matches = this.getArrayByRegExp(text, regex);
+    let tax = 0;
+
+    if (matches && matches.length > 0) {
+      tax = parseFloat(matches[1].replace(/\./g, '').replace(',', '.'));
+    }
+    return tax;
+  }
+
+  private getSettlementTotal(text: string): number {
+    const match: RegExpMatchArray | null = text.match(/(\d+,\d+)\d+,\d+/);
+    let price = 0;
+    if (match !== null) {
+      const monetaryValue: string = match[0];
+      const middleIndex: number = Math.floor(monetaryValue.length / 2);
+
+      const leftPart: string = monetaryValue.slice(0, middleIndex);
+      const rightPart: string = monetaryValue.slice(middleIndex);
+
+      if (leftPart === rightPart) {
+        price = parseFloat(leftPart.replace(/\./g, '').replace(',', '.'));
+      }
+    }
+    return price;
+  }
+
+  private getTrandingDate(text: string): Date {
+    const regex = new RegExp(/(\d{2}\/\d{2}\/\d{4})/);
+    const matches = this.getArrayByRegExp(text, regex);
+    let date: Date = new Date();
+
+    if (matches && matches.length > 0) {
+      date = parse(matches[1], 'dd/MM/yyyy', new Date());
+    }
+    return date;
+  }
+
+  private getNumber(text: string): number {
+    const regex = new RegExp(/Cidade\s+(\d+)/);
+    const matches = this.getArrayByRegExp(text, regex);
+    let number = 0;
+
+    if (matches && matches.length > 0) {
+      number = parseFloat(matches[1]);
+    }
+    return number;
+  }
+
+  private getTotal(text: string): number {
+    const match: RegExpMatchArray | null = text.match(/ (\S+)\nL - Precatório/);
+    let price = 0;
+    if (match !== null) {
+      const monetaryValue: string = match[1];
+      const middleIndex: number = Math.floor(monetaryValue.length / 2);
+
+      const leftPart: string = monetaryValue.slice(0, middleIndex);
+      const rightPart: string = monetaryValue.slice(middleIndex);
+
+      if (leftPart === rightPart) {
+        price = parseFloat(leftPart.replace(/\./g, '').replace(',', '.'));
+      }
+    }
+    return price;
   }
 }
