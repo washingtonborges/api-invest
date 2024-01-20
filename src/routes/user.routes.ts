@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import UserController from '../controllers/UserController';
-import User from '../models/User';
+import User from '../database/models/User';
 import authenticate from '../middlewares/authenticate';
 import 'express-async-errors';
 

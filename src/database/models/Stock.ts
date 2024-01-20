@@ -1,7 +1,7 @@
 import { Entity, Column, ObjectIdColumn, ObjectID } from 'typeorm';
 
 @Entity('stock')
-export default class Product {
+export default class Stock {
   @ObjectIdColumn()
   _id: ObjectID;
 
@@ -18,7 +18,7 @@ export default class Product {
   price: number;
 
   @Column()
-  fee: string;
+  fee: number;
 
   @Column()
   operation: boolean;

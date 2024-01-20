@@ -1,6 +1,6 @@
 import { EntityRepository, Repository, getCustomRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
-import User from '../models/User';
+import User from '../database/models/User';
 
 @EntityRepository(User)
 export default class UserRepository extends Repository<User> {

@@ -9,7 +9,7 @@ module.exports = {
   synchronize: true,
   logging: true,
   useUnifiedTopology: true,
-  entities: ['./src/models/*.ts'],
+  entities: ['./src/database/models/*.ts'],
   migrations: ['./src/database/migrations/*.ts'],
   cli: {
     migrationsDir: '/src/database/migrations'

@@ -4,11 +4,67 @@ import Price from '../models/Price';
 import Operation from '../models/Operation';
 import Invoice from '../models/Invoice';
 import Settlement from '../models/Settlement';
+import Stock from '../database/models/Stock';
+import InvoiceRawRepository from '../repositories/InvoiceRawRepository';
+import InvoiceRaw from '../database/models/InvoiceRaw';
 
 export default class InvoiceService {
-  public async read(path: string): Promise<Invoice> {
+  private invoiceRawRepository = new InvoiceRawRepository();
+
+  public async readByPath(path: string): Promise<Invoice> {
     const text: string = await readPdfText({ url: path });
     return this.get(text);
+  }
+
+  public async readByData(buffer: ArrayBufferLike): Promise<Invoice> {
+    const text: string = await readPdfText({ data: buffer });
+    return this.get(text);
+  }
+
+  public convertFilesArrayStringToByte(files: string[]): Uint8Array[] {
+    const arrayBytes: Uint8Array[] = [];
+    files.forEach((file: string) => {
+      const base64String = file.split(';base64,').pop() ?? '';
+      const bytes = new Uint8Array(
+        atob(base64String)
+          .split('')
+          .map(char => char.charCodeAt(0))
+      );
+      arrayBytes.push(bytes);
+    });
+    return arrayBytes;
+  }
+
+  public convertToStock(invoice: Invoice): Stock[] {
+    const list: Stock[] = invoice.operations.map(operation => {
+      return {
+        date: invoice.tradingDate,
+        symbol: operation.symbol,
+        quantity: operation.quantity,
+        price: operation.price.total,
+        fee: invoice.taxForEachOperation,
+        operation: operation.type === 'Buy'
+      } as Stock;
+    });
+    return list;
+  }
+
+  public createAndSaveInvoiceRaw(invoice: Invoice): Promise<InvoiceRaw> {
+    const invoiceRaw: InvoiceRaw = {
+      content: JSON.stringify(invoice),
+      dateReader: new Date(),
+      number: invoice.number
+    } as InvoiceRaw;
+    return this.invoiceRawRepository.createAndSave(invoiceRaw);
+  }
+
+  public async existInvoiceRawByNumber(number: number): Promise<boolean> {
+    let result = false;
+    const raw = await this.invoiceRawRepository.getByNumber(number);
+    if (raw) {
+      result = true;
+    }
+    return result;
   }
 
   private get(text: string): Invoice {

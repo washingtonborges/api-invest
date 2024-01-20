@@ -1,5 +1,5 @@
 import { hash } from 'bcryptjs';
-import User from '../models/User';
+import User from '../database/models/User';
 import UserRepository from '../repositories/UserRepository';
 import AppError from '../errors/AppError';
 
