@@ -33,4 +33,9 @@ StockRouter.post('/import/', async (request, response) => {
   return response.status(200).json(result);
 });
 
+StockRouter.get('/grouped/', async (request, response) => {
+  const allStocks = await stockController.getAllGrouped();
+  return response.status(200).json(allStocks);
+});
+
 export default StockRouter;

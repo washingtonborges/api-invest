@@ -20,4 +20,8 @@ export default class ProductController {
   public async import(files: string[]): Promise<ResultMessageDTO[]> {
     return this.StockService.import(files);
   }
+
+  public async getAllGrouped(): Promise<any[]> {
+    return this.StockService.getAllGrouped();
+  }
 }

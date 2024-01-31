@@ -65,7 +65,12 @@ export default class StockService {
         this.createAndSaveList(stocks);
         this.invoiceService.createAndSaveInvoiceRaw(invoice);
         results.push(
-          new ResultMessageDTO(invoice.number, 'Process successfully!', stocks)
+          new ResultMessageDTO(
+            invoice.number,
+            'Process successfully!',
+            stocks,
+            true
+          )
         );
       } else {
         results.push(
@@ -77,5 +82,9 @@ export default class StockService {
       }
     }
     return results;
+  }
+
+  public async getAllGrouped(): Promise<any[]> {
+    return this.stockRepository.getAllGrouped();
   }
 }
