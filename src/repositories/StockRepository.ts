@@ -14,6 +14,22 @@ export default class Stockepository extends Repository<Stock> {
     return productRepository.find();
   }
 
+  public async getAllByDate(date: Date): Promise<Stock[]> {
+    const productRepository = getCustomRepository(Stockepository);
+    return productRepository.find({
+      where: {
+        date: {
+          $lte: date
+        }
+      },
+      order: {
+        symbol: 'ASC',
+        date: 'ASC',
+        operation: 'DESC'
+      }
+    });
+  }
+
   public async get(id: string): Promise<Stock | undefined> {
     const stockRepository = getCustomRepository(Stockepository);
     return stockRepository.findOne({ _id: new ObjectId(id) });
