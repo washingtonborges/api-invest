@@ -15,11 +15,17 @@ export default class Stock {
   date: Date;
 
   @Column()
-  price: number;
+  unit: number;
+
+  @Column()
+  total: number;
 
   @Column()
   fee: number;
 
   @Column()
   operation: boolean;
+
+  @Column()
+  invoice: number;
 }

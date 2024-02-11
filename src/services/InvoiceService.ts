@@ -38,10 +38,12 @@ export default class InvoiceService {
   public convertToStock(invoice: Invoice): Stock[] {
     const list: Stock[] = invoice.operations.map(operation => {
       return {
+        invoice: invoice.number,
         date: invoice.tradingDate,
         symbol: operation.symbol,
         quantity: operation.quantity,
-        price: operation.price.total,
+        total: operation.price.total,
+        unit: operation.price.unitary,
         fee: invoice.taxForEachOperation,
         operation: operation.type === 'Buy'
       } as Stock;

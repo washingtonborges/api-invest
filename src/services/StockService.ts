@@ -131,6 +131,7 @@ export default class StockService {
 
     let currentSymbol: string;
     let lastSymbol: string;
+    let nextSymbol: string;
     let lastDate: Date;
     let lastQuantity: number;
     let countBuy = 0;
@@ -138,6 +139,9 @@ export default class StockService {
 
     allStocks.forEach((stock, index, array) => {
       currentSymbol = stock.symbol;
+      if (index + 1 < array.length) {
+        nextSymbol = array[index + 1].symbol;
+      }
       const isLastItem = index === array.length - 1;
 
       if (!positionMap.has(currentSymbol)) {
@@ -165,10 +169,9 @@ export default class StockService {
           position.quantity += stock.quantity;
           position.history.map(item => {
             if (item.endDate === null) {
-              const unitPrice = formatNumber(stock.price / stock.quantity);
               item.fee.buy = formatNumber(item.fee.buy + stock.fee);
               item.average.buy.unit = formatNumber(
-                item.average.buy.unit + unitPrice
+                item.average.buy.unit + stock.unit
               );
               item.average.buy.quantity += stock.quantity;
               if (isLastItem) {
@@ -180,28 +183,32 @@ export default class StockService {
             }
             return item;
           });
+          countBuy += 1;
         } else {
           position.quantity -= stock.quantity;
           position.history.map(item => {
             if (item.endDate === null) {
-              const unitPrice = formatNumber(stock.price / stock.quantity);
               item.fee.sell = formatNumber(item.fee.sell + stock.fee);
               item.average.sell.unit = formatNumber(
-                item.average.sell.unit + unitPrice
+                item.average.sell.unit + stock.unit
               );
               item.average.sell.quantity += stock.quantity;
             }
             return item;
           });
+          countSell += 1;
         }
 
-        if (position.quantity === 0) {
+        if (
+          position.quantity === 0 ||
+          (lastSymbol === currentSymbol && currentSymbol !== nextSymbol)
+        ) {
           position.history.map(item => {
             return this.calculatedHistory(
               item,
+              stock.date,
               countBuy,
               countSell,
-              stock.date,
               true
             );
           });
@@ -216,21 +223,17 @@ export default class StockService {
             lastPosition.history.map(item => {
               return this.calculatedHistory(
                 item,
+                lastDate,
                 countBuy,
-                countSell,
-                lastDate
+                countSell
               );
             });
           }
-          countBuy = 0;
-          countSell = 0;
         }
 
         lastSymbol = currentSymbol;
         lastDate = stock.date;
         lastQuantity = position.quantity;
-        countBuy += 1;
-        countSell += 1;
       }
     });
 
@@ -240,28 +243,49 @@ export default class StockService {
 
   private calculatedHistory(
     item: History,
+    endDate: Date,
     countBuy: number,
     countSell: number,
-    endDate: Date,
     isCalculateProfitLoss = false
   ): History {
     if (item.endDate === null) {
-      const averageUnitBuy =
-        formatNumber(item.average.buy.unit) / formatNumber(countBuy);
-      const averageUnitSell =
-        formatNumber(item.average.sell.unit) / formatNumber(countSell);
-      item.average.buy.unit = formatNumber(averageUnitBuy);
-      item.average.sell.unit = formatNumber(averageUnitSell);
-      const totalBuy = item.average.buy.unit * item.average.buy.quantity;
-      const totalSell = item.average.sell.unit * item.average.sell.quantity;
+      if (countBuy !== 0) {
+        item.average.buy.unit = formatNumber(item.average.buy.unit / countBuy);
+      }
+      if (countSell !== 0) {
+        item.average.sell.unit = formatNumber(
+          item.average.sell.unit / countSell
+        );
+      }
+      const totalBuy = formatNumber(
+        item.average.buy.unit * item.average.buy.quantity
+      );
+      const totalSell = formatNumber(
+        item.average.sell.unit * item.average.sell.quantity
+      );
       item.endDate = endDate;
       item.fee.total = formatNumber(item.fee.buy + item.fee.sell);
       item.average.buy.total = formatNumber(totalBuy + item.fee.buy);
       item.average.sell.total = formatNumber(totalSell - item.fee.sell);
-      if (isCalculateProfitLoss) {
-        item.profitLoss = formatNumber(
-          item.average.sell.total - item.average.buy.total - item.fee.total
-        );
+      if (isCalculateProfitLoss && countBuy !== 0 && countSell !== 0) {
+        const partialQuantity =
+          item.average.buy.quantity - item.average.sell.quantity;
+        const isSellAllStockPosition = partialQuantity === 0;
+        if (isSellAllStockPosition) {
+          item.profitLoss = formatNumber(
+            item.average.sell.total - item.average.buy.total - item.fee.total
+          );
+        } else {
+          const partialTotalSell = formatNumber(
+            partialQuantity * item.average.sell.unit
+          );
+          const partialTotalBuy = formatNumber(
+            partialQuantity * item.average.buy.unit
+          );
+          item.profitLoss = formatNumber(
+            partialTotalSell - partialTotalBuy - item.fee.total
+          );
+        }
       }
     }
     return item;
