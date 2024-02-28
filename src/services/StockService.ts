@@ -174,6 +174,8 @@ export default class StockService {
                 countSell
               );
             });
+            countBuy = 0;
+            countSell = 0;
           }
         }
 
