@@ -163,6 +163,20 @@ export default class StockService {
           countSell = 0;
         }
 
+        if (lastSymbol !== currentSymbol && lastSymbol !== undefined) {
+          const lastPosition = positionMap.get(lastSymbol);
+          if (lastPosition !== undefined) {
+            lastPosition.history.map(item => {
+              return this.calculatedHistory(
+                item,
+                lastDate,
+                countBuy,
+                countSell
+              );
+            });
+          }
+        }
+
         if (stock.operation) {
           position.quantity += stock.quantity;
           position.history.map(item => {
@@ -213,20 +227,6 @@ export default class StockService {
 
           countBuy = 0;
           countSell = 0;
-        }
-
-        if (lastSymbol !== currentSymbol && lastSymbol !== undefined) {
-          const lastPosition = positionMap.get(lastSymbol);
-          if (lastPosition !== undefined) {
-            lastPosition.history.map(item => {
-              return this.calculatedHistory(
-                item,
-                lastDate,
-                countBuy,
-                countSell
-              );
-            });
-          }
         }
 
         lastSymbol = currentSymbol;
