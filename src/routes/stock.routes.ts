@@ -34,7 +34,8 @@ StockRouter.post('/import/', async (request, response) => {
 });
 
 StockRouter.get('/grouped/', async (request, response) => {
-  const allStocks = await stockController.getAllGrouped();
+  const date: Date = new Date(request.body.date);
+  const allStocks = await stockController.getAllGrouped(date);
   return response.status(200).json(allStocks);
 });
 

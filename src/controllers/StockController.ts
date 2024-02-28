@@ -21,7 +21,7 @@ export default class ProductController {
     return this.StockService.import(files);
   }
 
-  public async getAllGrouped(): Promise<any[]> {
-    return this.StockService.getAllGrouped();
+  public async getAllGrouped(date: Date): Promise<any[]> {
+    return this.StockService.getAllGrouped(date);
   }
 }

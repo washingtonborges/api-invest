@@ -122,10 +122,8 @@ export default class StockService {
     return results;
   }
 
-  public async getAllGrouped(): Promise<Position[]> {
-    const allStocks = await this.stockRepository.getAllByDate(
-      new Date('2024-12-31')
-    );
+  public async getAllGrouped(date: Date): Promise<Position[]> {
+    const allStocks = await this.stockRepository.getAllByDate(date);
 
     const positionMap = new Map<string, Position>();
 
