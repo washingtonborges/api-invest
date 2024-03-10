@@ -238,7 +238,27 @@ export default class StockService {
     });
 
     const positions = Array.from(positionMap.values());
-    return positions;
+    return this.filterStocks(date, positions);
+  }
+
+  private filterStocks(date: Date, positions: Position[]): Position[] {
+    return positions.filter(position => {
+      const { quantity, history } = position;
+
+      if (quantity > 0) {
+        return !history.every(
+          h =>
+            (h.endDate ? new Date(h.endDate) : new Date()).getFullYear() <
+              new Date(date).getFullYear() && h.average.buy.quantity < quantity
+        );
+      }
+
+      return history.some(
+        h =>
+          (h.endDate ? new Date(h.endDate) : new Date()).getFullYear() ===
+          new Date(date).getFullYear()
+      );
+    });
   }
 
   private calculatedHistory(
@@ -263,11 +283,11 @@ export default class StockService {
       const totalSell = formatNumber(
         item.average.sell.unit * item.average.sell.quantity
       );
-      item.endDate = endDate;
       item.fee.total = formatNumber(item.fee.buy + item.fee.sell);
       item.average.buy.total = formatNumber(totalBuy + item.fee.buy);
       item.average.sell.total = formatNumber(totalSell - item.fee.sell);
       if (isCalculateProfitLoss && countBuy !== 0 && countSell !== 0) {
+        item.endDate = endDate;
         const partialQuantity =
           item.average.buy.quantity - item.average.sell.quantity;
         const isSellAllStockPosition = partialQuantity === 0;
