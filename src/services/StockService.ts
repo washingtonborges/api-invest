@@ -1,14 +1,19 @@
+import axios from 'axios';
+import { parse } from 'date-fns';
 import Stock from '../database/models/Stock';
 import StockRepository from '../repositories/StockRepository';
+import LatestQuoteRepository from '../repositories/LatestQuoteRepository';
 import AppError from '../errors/AppError';
 import InvoiceService from './InvoiceService';
 import ResultMessageDTO from '../models/DTO/ResultMessageDTO';
 import formatNumber from '../helper/format';
+import LatestQuote from '../database/models/LatestQuote';
 
 interface Position {
   symbol: string;
   quantity: number;
   history: History[];
+  latest: Latest;
 }
 
 interface History {
@@ -42,8 +47,16 @@ interface Sell {
   total: number;
 }
 
+interface Latest {
+  date: Date | null;
+  unit: number;
+  total: number;
+}
+
 export default class StockService {
   private stockRepository = new StockRepository();
+
+  private latestQuoteRepository = new LatestQuoteRepository();
 
   private invoiceService = new InvoiceService();
 
@@ -237,8 +250,10 @@ export default class StockService {
       }
     });
 
-    const positions = Array.from(positionMap.values());
-    return this.filterStocks(date, positions);
+    let positions = Array.from(positionMap.values());
+    positions = this.filterStocks(date, positions);
+    positions = await this.addLatestQuote(positions, date.getFullYear());
+    return positions;
   }
 
   private filterStocks(date: Date, positions: Position[]): Position[] {
@@ -315,6 +330,11 @@ export default class StockService {
     return {
       symbol,
       quantity: 0,
+      latest: {
+        date: null,
+        unit: 0,
+        total: 0
+      },
       history: [
         {
           startDate: start,
@@ -365,5 +385,89 @@ export default class StockService {
       },
       profitLoss: 0
     };
+  }
+
+  private async addLatestQuote(
+    positions: Position[],
+    year: number
+  ): Promise<Position[]> {
+    const updatedPositions = await positions.map(async position => {
+      let latestQuote = await this.latestQuoteRepository.getBySymbolAndYear(
+        position.symbol,
+        year
+      );
+
+      if (latestQuote === undefined) {
+        await this.waitRandomTime(7, 13);
+        await this.waitRandomTime(2, 8);
+        const latest = await this.getLatestQuotes(position.symbol, year);
+        if (latest.date !== null && latest.date !== undefined) {
+          const newLatestQuote: LatestQuote = {
+            symbol: position.symbol,
+            unit: latest.unit,
+            date: latest.date
+          };
+          delete newLatestQuote._id;
+
+          latestQuote = await this.latestQuoteRepository.createAndSave(
+            newLatestQuote
+          );
+        }
+      }
+
+      if (latestQuote !== undefined) {
+        position.latest = {
+          date: latestQuote.date,
+          unit: latestQuote.unit
+        } as Latest;
+      }
+
+      return position;
+    });
+    return Promise.all(updatedPositions);
+  }
+
+  private async waitRandomTime(max: number, min: number): Promise<void> {
+    const randomTimeInSeconds = Math.random() * (max - min) + min;
+    const randomTimeInMilliseconds =
+      randomTimeInSeconds * (1321 + 689 / (max - min));
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, randomTimeInMilliseconds);
+    });
+  }
+
+  private async getLatestQuotes(symbol: string, year: number): Promise<Latest> {
+    const url =
+      'https://www.infomoney.com.br/wp-json/infomoney/v1/quotes/history';
+
+    const payload = {
+      page: 0,
+      numberItems: 99999,
+      initialDate: `28/12/${year}`,
+      finalDate: `31/12/${year}`,
+      symbol
+    };
+
+    const result = await axios
+      .post(url, payload)
+      .then(response => {
+        if (response.data === '') {
+          return {} as Latest;
+        }
+        const data = response.data.pop();
+        const latest: Latest = {
+          date: parse(data[0].display, 'dd/MM/yyyy', new Date()),
+          unit: data[2]
+        } as Latest;
+        return latest;
+      })
+      .catch(error => {
+        console.error('Erro ao obter as últimas cotações:', error);
+        return {} as Latest;
+      });
+
+    return result;
   }
 }
