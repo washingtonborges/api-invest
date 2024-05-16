@@ -268,8 +268,14 @@ export default class InvoiceService {
   }
 
   private getNumber(text: string): number {
-    const regex = new RegExp(/Cidade\s+(\d+)/);
-    const matches = this.getArrayByRegExp(text, regex);
+    const regexOldVersion = new RegExp(/Cidade\s+(\d+)/);
+    const regexNewVersion = new RegExp(/Pinheiros\s+(\d+)/);
+
+    let matches = this.getArrayByRegExp(text, regexOldVersion);
+    if (matches.length === 0) {
+      matches = this.getArrayByRegExp(text, regexNewVersion);
+    }
+
     let number = 0;
 
     if (matches && matches.length > 0) {
