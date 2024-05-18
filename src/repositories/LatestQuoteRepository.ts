@@ -31,4 +31,12 @@ export default class LatestQuoteRepository extends Repository<LatestQuote> {
     const repository = getCustomRepository(LatestQuoteRepository);
     return repository.save(obj);
   }
+
+  public async updateAndSave(obj: LatestQuote): Promise<LatestQuote> {
+    const id = obj._id ?? new ObjectId();
+    const idString = id instanceof ObjectId ? id.toHexString() : id;
+    const repository = getCustomRepository(LatestQuoteRepository);
+    repository.update(idString, obj);
+    return obj;
+  }
 }

@@ -3,6 +3,7 @@ import StockController from '../controllers/StockController';
 import Stock from '../database/models/Stock';
 import 'express-async-errors';
 import authenticate from '../middlewares/authenticate';
+import LatestQuote from '../database/models/LatestQuote';
 
 const stockController = new StockController();
 
@@ -33,10 +34,23 @@ StockRouter.post('/import/', async (request, response) => {
   return response.status(200).json(result);
 });
 
-StockRouter.get('/grouped/', async (request, response) => {
+StockRouter.post('/grouped/', async (request, response) => {
   const date: Date = new Date(request.body.date);
-  const allStocks = await stockController.getAllGrouped(date);
+  const { isLatestQuote } = request.body;
+  const { isCurrentPosition } = request.body;
+  const allStocks = await stockController.getAllGrouped(
+    date,
+    isLatestQuote,
+    isCurrentPosition
+  );
   return response.status(200).json(allStocks);
+});
+
+StockRouter.post('/updatelatestquote/', async (request, response) => {
+  const latestQuote: LatestQuote = request.body;
+  latestQuote.date = new Date(latestQuote.date);
+  const result = await stockController.updateLatestQuote(latestQuote);
+  return response.status(200).json(result);
 });
 
 export default StockRouter;

@@ -8,50 +8,9 @@ import InvoiceService from './InvoiceService';
 import ResultMessageDTO from '../models/DTO/ResultMessageDTO';
 import formatNumber from '../helper/format';
 import LatestQuote from '../database/models/LatestQuote';
-
-interface Position {
-  symbol: string;
-  quantity: number;
-  history: History[];
-  latest: Latest;
-}
-
-interface History {
-  startDate: Date;
-  endDate: Date | null;
-  fee: Fee;
-  profitLoss: number;
-  average: Average;
-}
-
-interface Fee {
-  buy: number;
-  sell: number;
-  total: number;
-}
-
-interface Average {
-  buy: Buy;
-  sell: Sell;
-}
-
-interface Buy {
-  unit: number;
-  quantity: number;
-  total: number;
-}
-
-interface Sell {
-  unit: number;
-  quantity: number;
-  total: number;
-}
-
-interface Latest {
-  date: Date | null;
-  unit: number;
-  total: number;
-}
+import Position from '../models/Position';
+import History from '../models/History';
+import Latest from '../models/Latest';
 
 export default class StockService {
   private stockRepository = new StockRepository();
@@ -135,7 +94,11 @@ export default class StockService {
     return results;
   }
 
-  public async getAllGrouped(date: Date): Promise<Position[]> {
+  public async getAllGrouped(
+    date: Date,
+    isLatestQuote = false,
+    isCurrentPosition = false
+  ): Promise<Position[]> {
     const allStocks = await this.stockRepository.getAllByDate(date);
 
     const positionMap = new Map<string, Position>();
@@ -252,7 +215,18 @@ export default class StockService {
 
     let positions = Array.from(positionMap.values());
     positions = this.filterStocks(date, positions);
-    positions = await this.addLatestQuote(positions, date.getFullYear());
+    if (isLatestQuote) {
+      positions = await this.addLatestQuote(positions, date.getFullYear());
+    }
+    if (isCurrentPosition) {
+      positions = positions.filter(position => {
+        return position.history.some(
+          history =>
+            history.endDate === null ||
+            new Date(history.endDate).getFullYear() === new Date().getFullYear()
+        );
+      });
+    }
     return positions;
   }
 
@@ -409,16 +383,15 @@ export default class StockService {
           };
           delete newLatestQuote._id;
 
-          latestQuote = await this.latestQuoteRepository.createAndSave(
-            newLatestQuote
-          );
+          latestQuote = await this.createLatestQuote(newLatestQuote);
         }
       }
 
       if (latestQuote !== undefined) {
         position.latest = {
           date: latestQuote.date,
-          unit: latestQuote.unit
+          unit: latestQuote.unit,
+          total: formatNumber(position.quantity * latestQuote.unit)
         } as Latest;
       }
 
@@ -459,7 +432,7 @@ export default class StockService {
         const data = response.data.pop();
         const latest: Latest = {
           date: parse(data[0].display, 'dd/MM/yyyy', new Date()),
-          unit: data[2]
+          unit: parseFloat(data[2].replace(/\./g, '').replace(',', '.'))
         } as Latest;
         return latest;
       })
@@ -469,5 +442,27 @@ export default class StockService {
       });
 
     return result;
+  }
+
+  public async updateLatestQuote(
+    latestQuote: LatestQuote
+  ): Promise<LatestQuote> {
+    const year = latestQuote.date.getFullYear();
+    const oldLatestQuote = await this.latestQuoteRepository.getBySymbolAndYear(
+      latestQuote.symbol,
+      year
+    );
+    if (oldLatestQuote) {
+      oldLatestQuote.date = latestQuote.date;
+      oldLatestQuote.unit = latestQuote.unit;
+      return this.latestQuoteRepository.updateAndSave(oldLatestQuote);
+    }
+    return this.latestQuoteRepository.createAndSave(latestQuote);
+  }
+
+  public async createLatestQuote(
+    latestQuote: LatestQuote
+  ): Promise<LatestQuote> {
+    return this.latestQuoteRepository.createAndSave(latestQuote);
   }
 }
