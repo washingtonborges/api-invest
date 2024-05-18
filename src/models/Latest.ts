@@ -4,4 +4,6 @@ export default class Latest {
   unit: number;
 
   total: number;
+
+  from: string;
 }

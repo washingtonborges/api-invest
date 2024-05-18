@@ -13,4 +13,7 @@ export default class LatestQuote {
 
   @Column()
   unit: number;
+
+  @Column()
+  from: string;
 }

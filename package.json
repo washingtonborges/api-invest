@@ -38,6 +38,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongodb": "^3.5.9",
     "pdf-text-reader": "^4.0.0",
-    "typeorm": "^0.2.25"
+    "typeorm": "^0.2.25",
+    "yahoo-finance2": "^2.11.2"
   }
 }

@@ -1,5 +1,7 @@
+import dotenv from 'dotenv';
 import axios from 'axios';
 import { parse } from 'date-fns';
+import yahooFinance from 'yahoo-finance2';
 import Stock from '../database/models/Stock';
 import StockRepository from '../repositories/StockRepository';
 import LatestQuoteRepository from '../repositories/LatestQuoteRepository';
@@ -11,6 +13,8 @@ import LatestQuote from '../database/models/LatestQuote';
 import Position from '../models/Position';
 import History from '../models/History';
 import Latest from '../models/Latest';
+
+dotenv.config();
 
 export default class StockService {
   private stockRepository = new StockRepository();
@@ -307,7 +311,8 @@ export default class StockService {
       latest: {
         date: null,
         unit: 0,
-        total: 0
+        total: 0,
+        from: ''
       },
       history: [
         {
@@ -379,7 +384,8 @@ export default class StockService {
           const newLatestQuote: LatestQuote = {
             symbol: position.symbol,
             unit: latest.unit,
-            date: latest.date
+            date: latest.date,
+            from: latest.from
           };
           delete newLatestQuote._id;
 
@@ -412,8 +418,123 @@ export default class StockService {
   }
 
   private async getLatestQuotes(symbol: string, year: number): Promise<Latest> {
-    const url =
-      'https://www.infomoney.com.br/wp-json/infomoney/v1/quotes/history';
+    let latestQuote = await this.getHistoricalPriceByYahooFinance(symbol, year);
+    if (!latestQuote) {
+      latestQuote = await this.getHistoricalPriceByAlphaVantage(symbol, year);
+    }
+    if (!latestQuote) {
+      latestQuote = await this.getHistoricalPriceByIEXCloud(symbol, year);
+    }
+    if (!latestQuote) {
+      latestQuote = await this.getHistoricalPriceByInfomoney(symbol, year);
+    }
+    if (!latestQuote) {
+      latestQuote = {} as Latest;
+    }
+    return latestQuote;
+  }
+
+  private async getHistoricalPriceByYahooFinance(
+    symbol: string,
+    year: number
+  ): Promise<Latest | undefined> {
+    try {
+      const queryOptions = {
+        period1: `${year}-12-28`,
+        period2: `${year}-12-31`
+      };
+      const data = await yahooFinance.historical(`${symbol}.SA`, queryOptions);
+      if (data.length === 0) {
+        return undefined;
+      }
+      const latest: Latest = {
+        date: data[0].date,
+        unit: data[0].close,
+        from: 'YahooFinance'
+      } as Latest;
+      return latest;
+    } catch (error) {
+      console.error('Erro ao buscar os dados:', error);
+      return undefined;
+    }
+  }
+
+  private async getHistoricalPriceByAlphaVantage(
+    symbol: string,
+    year: number
+  ): Promise<Latest | undefined> {
+    const API_KEY = process.env.ALPHAVANTAGE_API_KEY ?? '';
+    const url = `${
+      process.env.ALPHAVANTAGE_URL ?? ''
+    }/query?function=TIME_SERIES_DAILY&symbol=${symbol}.SA&apikey=${API_KEY}`;
+
+    try {
+      const response = await axios.get(url);
+
+      const data = response.data['Time Series (Daily)'];
+      if (!data) {
+        throw new Error('Dados não encontrados na resposta da API.');
+      }
+
+      const dates = Object.keys(data);
+      const targetDate = dates.find(
+        date => new Date(date).getFullYear() === year
+      );
+
+      if (!targetDate) {
+        throw new Error(`Nenhuma data encontrada para o ano ${year}.`);
+      }
+
+      const closingPrice = data[targetDate]['4. close'];
+
+      const latest: Latest = {
+        date: new Date(targetDate),
+        unit: parseFloat(closingPrice),
+        from: 'AlphaVantage'
+      } as Latest;
+
+      return latest;
+    } catch (error) {
+      console.error('Erro ao buscar os dados:', error);
+      return undefined;
+    }
+  }
+
+  private async getHistoricalPriceByIEXCloud(
+    symbol: string,
+    year: number
+  ): Promise<Latest | undefined> {
+    const API_KEY = process.env.IEXCLOUD_API_KEY ?? '';
+    const url = `${
+      process.env.IEXCLOUD_URL ?? ''
+    }/${symbol}?from=${year}-12-28&to=${year}-12-31&token=${API_KEY}`;
+
+    try {
+      const response = await axios.get(url);
+      const { data } = response;
+      if (data.length === 0) {
+        throw new Error('Dados não encontrados na resposta da API.');
+      }
+      const closingPrice = data[0].close;
+
+      const latest: Latest = {
+        date: new Date(data[0].priceDate),
+        unit: parseFloat(closingPrice),
+        from: 'IEXCloud'
+      } as Latest;
+
+      return latest;
+    } catch (error) {
+      console.error('Erro ao buscar os dados:', error);
+      return undefined;
+    }
+  }
+
+  private async getHistoricalPriceByInfomoney(
+    symbol: string,
+    year: number
+  ): Promise<Latest | undefined> {
+    const url = process.env.INFOMONEY_URL ?? '';
 
     const payload = {
       page: 0,
@@ -427,18 +548,19 @@ export default class StockService {
       .post(url, payload)
       .then(response => {
         if (response.data === '') {
-          return {} as Latest;
+          return undefined;
         }
         const data = response.data.pop();
         const latest: Latest = {
           date: parse(data[0].display, 'dd/MM/yyyy', new Date()),
-          unit: parseFloat(data[2].replace(/\./g, '').replace(',', '.'))
+          unit: parseFloat(data[2].replace(/\./g, '').replace(',', '.')),
+          from: 'Infomoney'
         } as Latest;
         return latest;
       })
       .catch(error => {
         console.error('Erro ao obter as últimas cotações:', error);
-        return {} as Latest;
+        return undefined;
       });
 
     return result;
