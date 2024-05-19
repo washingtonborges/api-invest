@@ -54,4 +54,8 @@ export default class ProductController {
       userId
     );
   }
+
+  public async getYearsByUserId(userId: string): Promise<number[]> {
+    return this.StockService.getYearsByUserId(userId);
+  }
 }

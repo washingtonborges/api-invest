@@ -602,4 +602,8 @@ export default class StockService {
   ): Promise<LatestQuote> {
     return this.latestQuoteRepository.createAndSave(latestQuote);
   }
+
+  public async getYearsByUserId(userId: string): Promise<number[]> {
+    return this.stockRepository.getYearsByUserId(userId);
+  }
 }

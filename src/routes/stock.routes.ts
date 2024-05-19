@@ -60,4 +60,10 @@ StockRouter.post('/updatelatestquote/', async (request, response) => {
   return response.status(200).json(result);
 });
 
+StockRouter.get('/getYears/', async (request, response) => {
+  const userId = request.user.id;
+  const allyear = await stockController.getYearsByUserId(userId);
+  return response.status(200).json(allyear);
+});
+
 export default StockRouter;
