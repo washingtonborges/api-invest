@@ -70,8 +70,9 @@ export default class StockService {
   ): Promise<ResultMessageDTO[]> {
     const results: ResultMessageDTO[] = [];
     const invoice = await this.invoiceService.readByData(bytes.buffer);
-    const existInvoice = await this.invoiceService.existInvoiceRawByNumber(
-      invoice.number
+    const existInvoice = await this.invoiceService.existInvoiceRawByNumberAndUserId(
+      invoice.number,
+      userId
     );
     if (existInvoice) {
       results.push(

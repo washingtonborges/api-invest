@@ -65,9 +65,15 @@ export default class InvoiceService {
     return this.invoiceRawRepository.createAndSave(invoiceRaw);
   }
 
-  public async existInvoiceRawByNumber(number: number): Promise<boolean> {
+  public async existInvoiceRawByNumberAndUserId(
+    number: number,
+    userId: string
+  ): Promise<boolean> {
     let result = false;
-    const raw = await this.invoiceRawRepository.getByNumber(number);
+    const raw = await this.invoiceRawRepository.getByNumberAndUserId(
+      number,
+      userId
+    );
     if (raw) {
       result = true;
     }

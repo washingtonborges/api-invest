@@ -14,9 +14,12 @@ export default class InvoiceRawRepository extends Repository<InvoiceRaw> {
     return repository.findOne({ _id: new ObjectId(id) });
   }
 
-  public async getByNumber(number: number): Promise<InvoiceRaw | undefined> {
+  public async getByNumberAndUserId(
+    number: number,
+    userId: string
+  ): Promise<InvoiceRaw | undefined> {
     const repository = getCustomRepository(InvoiceRawRepository);
-    return repository.findOne({ number });
+    return repository.findOne({ number, userId });
   }
 
   public async createAndSave(invoice: InvoiceRaw): Promise<InvoiceRaw> {
