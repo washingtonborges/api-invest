@@ -392,7 +392,6 @@ export default class StockService {
       );
 
       if (latestQuote === undefined) {
-        await this.waitRandomTime(1, 3);
         const latest = await this.getLatestQuotes(position.symbol, year);
         if (latest.date !== null && latest.date !== undefined) {
           const newLatestQuote: LatestQuote = {
@@ -418,17 +417,6 @@ export default class StockService {
       return position;
     });
     return Promise.all(updatedPositions);
-  }
-
-  private async waitRandomTime(max: number, min: number): Promise<void> {
-    const randomTimeInSeconds = Math.random() * (max - min) + min;
-    const randomTimeInMilliseconds =
-      randomTimeInSeconds * (1321 + 689 / (max - min));
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve();
-      }, randomTimeInMilliseconds);
-    });
   }
 
   private async getLatestQuotes(symbol: string, year: number): Promise<Latest> {
