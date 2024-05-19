@@ -6,6 +6,9 @@ export default class InvoiceRaw {
   _id: ObjectID;
 
   @Column()
+  userId: string;
+
+  @Column()
   content: string;
 
   @Column()

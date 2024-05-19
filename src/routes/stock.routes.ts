@@ -12,25 +12,29 @@ const StockRouter = Router();
 StockRouter.use(authenticate);
 
 StockRouter.get('/', async (request, response) => {
-  const allStocks = await stockController.getAll();
+  const userId = request.user.id;
+  const allStocks = await stockController.getAllByUserId(userId);
   return response.status(200).json(allStocks);
 });
 
 StockRouter.get(':id', async (request, response) => {
   const { id } = request.params;
-  const stock = await stockController.get(id);
+  const userId = request.user.id;
+  const stock = await stockController.getByUserId(id, userId);
   return response.status(200).json(stock);
 });
 
 StockRouter.post('/', async (request, response) => {
   const newStock: Stock = request.body;
+  newStock.userId = request.user.id;
   const stock = await stockController.create(newStock);
   return response.status(201).json(stock);
 });
 
 StockRouter.post('/import/', async (request, response) => {
   const files: string[] = request.body;
-  const result = await stockController.import(files);
+  const userId = request.user.id;
+  const result = await stockController.import(files, userId);
   return response.status(200).json(result);
 });
 
@@ -38,10 +42,12 @@ StockRouter.post('/grouped/', async (request, response) => {
   const date: Date = new Date(request.body.date);
   const { isLatestQuote } = request.body;
   const { isCurrentPosition } = request.body;
-  const allStocks = await stockController.getAllGrouped(
+  const userId = request.user.id;
+  const allStocks = await stockController.getAllGroupedByDateAndUserId(
     date,
     isLatestQuote,
-    isCurrentPosition
+    isCurrentPosition,
+    userId
   );
   return response.status(200).json(allStocks);
 });
@@ -49,6 +55,7 @@ StockRouter.post('/grouped/', async (request, response) => {
 StockRouter.post('/updatelatestquote/', async (request, response) => {
   const latestQuote: LatestQuote = request.body;
   latestQuote.date = new Date(latestQuote.date);
+  latestQuote.from = `UserId: ${request.user.id}`;
   const result = await stockController.updateLatestQuote(latestQuote);
   return response.status(200).json(result);
 });

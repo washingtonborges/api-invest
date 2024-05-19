@@ -23,15 +23,18 @@ export default class StockService {
 
   private invoiceService = new InvoiceService();
 
-  public async getAll(): Promise<Stock[]> {
-    return this.stockRepository.getAll();
+  public async getAllByUserId(userId: string): Promise<Stock[]> {
+    return this.stockRepository.getAllByUserId(userId);
   }
 
-  public async get(id: string): Promise<Stock | undefined> {
+  public async getByUserId(
+    id: string,
+    userId: string
+  ): Promise<Stock | undefined> {
     if (id.length !== 24) {
       throw new AppError('The requested product was not found');
     }
-    const stock = this.stockRepository.get(id);
+    const stock = this.stockRepository.getByUserId(id, userId);
     if (!stock) {
       throw new AppError('The requested product was not found');
     }
@@ -48,10 +51,13 @@ export default class StockService {
     });
   }
 
-  public async import(files: string[]): Promise<ResultMessageDTO[]> {
+  public async import(
+    files: string[],
+    userId: string
+  ): Promise<ResultMessageDTO[]> {
     const arrayBytes = this.invoiceService.convertFilesArrayStringToByte(files);
     const promises = arrayBytes.map(async (bytes: Uint8Array) => {
-      return this.convertInvoiceDataToStockList(bytes);
+      return this.convertInvoiceDataToStockList(bytes, userId);
     });
     const resultsArray = await Promise.all(promises);
     const list = resultsArray.reduce((acc, result) => acc.concat(result), []);
@@ -59,7 +65,8 @@ export default class StockService {
   }
 
   public async convertInvoiceDataToStockList(
-    bytes: Uint8Array
+    bytes: Uint8Array,
+    userId: string
   ): Promise<ResultMessageDTO[]> {
     const results: ResultMessageDTO[] = [];
     const invoice = await this.invoiceService.readByData(bytes.buffer);
@@ -74,10 +81,10 @@ export default class StockService {
         )
       );
     } else {
-      const stocks = this.invoiceService.convertToStock(invoice);
+      const stocks = this.invoiceService.convertToStock(invoice, userId);
       if (stocks.length === invoice.operations.length) {
         this.createAndSaveList(stocks);
-        this.invoiceService.createAndSaveInvoiceRaw(invoice);
+        this.invoiceService.createAndSaveInvoiceRaw(invoice, userId);
         results.push(
           new ResultMessageDTO(
             invoice.number,
@@ -98,12 +105,20 @@ export default class StockService {
     return results;
   }
 
-  public async getAllGrouped(
+  public async getAllGroupedByDateAndUserId(
     date: Date,
     isLatestQuote = false,
-    isCurrentPosition = false
+    isCurrentPosition = false,
+    userId: string
   ): Promise<Position[]> {
-    const allStocks = await this.stockRepository.getAllByDate(date);
+    const allStocks = await this.stockRepository.getAllByDateAndUserId(
+      date,
+      userId
+    );
+
+    if (allStocks.length === 0) {
+      return [] as Position[];
+    }
 
     const positionMap = new Map<string, Position>();
 

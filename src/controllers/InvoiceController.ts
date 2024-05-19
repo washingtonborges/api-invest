@@ -5,6 +5,6 @@ export default class InvoiceController {
   private InvoiceService = new InvoiceService();
 
   public async get(path: string): Promise<Invoice> {
-    return this.InvoiceService.read(path);
+    return this.InvoiceService.readByPath(path);
   }
 }

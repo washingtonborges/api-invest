@@ -35,7 +35,7 @@ export default class InvoiceService {
     return arrayBytes;
   }
 
-  public convertToStock(invoice: Invoice): Stock[] {
+  public convertToStock(invoice: Invoice, userId: string): Stock[] {
     const list: Stock[] = invoice.operations.map(operation => {
       return {
         invoice: invoice.number,
@@ -45,17 +45,22 @@ export default class InvoiceService {
         total: operation.price.total,
         unit: operation.price.unitary,
         fee: invoice.taxForEachOperation,
-        operation: operation.type === 'Buy'
+        operation: operation.type === 'Buy',
+        userId
       } as Stock;
     });
     return list;
   }
 
-  public createAndSaveInvoiceRaw(invoice: Invoice): Promise<InvoiceRaw> {
+  public createAndSaveInvoiceRaw(
+    invoice: Invoice,
+    userId: string
+  ): Promise<InvoiceRaw> {
     const invoiceRaw: InvoiceRaw = {
       content: JSON.stringify(invoice),
       dateReader: new Date(),
-      number: invoice.number
+      number: invoice.number,
+      userId
     } as InvoiceRaw;
     return this.invoiceRawRepository.createAndSave(invoiceRaw);
   }

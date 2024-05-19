@@ -6,6 +6,9 @@ export default class Stock {
   _id: ObjectID;
 
   @Column()
+  userId: string;
+
+  @Column()
   symbol: string;
 
   @Column()

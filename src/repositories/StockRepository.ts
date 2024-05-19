@@ -9,15 +9,19 @@ import Stock from '../database/models/Stock';
 
 @EntityRepository(Stock)
 export default class Stockepository extends Repository<Stock> {
-  public async getAll(): Promise<Stock[]> {
+  public async getAllByUserId(userId: string): Promise<Stock[]> {
     const productRepository = getCustomRepository(Stockepository);
-    return productRepository.find();
+    return productRepository.find({ userId });
   }
 
-  public async getAllByDate(date: Date): Promise<Stock[]> {
+  public async getAllByDateAndUserId(
+    date: Date,
+    userId: string
+  ): Promise<Stock[]> {
     const productRepository = getCustomRepository(Stockepository);
     return productRepository.find({
       where: {
+        userId,
         date: {
           $lte: date
         }
@@ -30,9 +34,12 @@ export default class Stockepository extends Repository<Stock> {
     });
   }
 
-  public async get(id: string): Promise<Stock | undefined> {
+  public async getByUserId(
+    id: string,
+    userId: string
+  ): Promise<Stock | undefined> {
     const stockRepository = getCustomRepository(Stockepository);
-    return stockRepository.findOne({ _id: new ObjectId(id) });
+    return stockRepository.findOne({ _id: new ObjectId(id), userId });
   }
 
   public async createAndSave(stock: Stock): Promise<Stock> {

@@ -7,20 +7,26 @@ import LatestQuote from '../database/models/LatestQuote';
 export default class ProductController {
   private StockService = new StockService();
 
-  public async getAll(): Promise<Stock[]> {
-    return this.StockService.getAll();
+  public async getAllByUserId(userId: string): Promise<Stock[]> {
+    return this.StockService.getAllByUserId(userId);
   }
 
-  public async get(id: string): Promise<Stock | undefined> {
-    return this.StockService.get(id);
+  public async getByUserId(
+    id: string,
+    userId: string
+  ): Promise<Stock | undefined> {
+    return this.StockService.getByUserId(id, userId);
   }
 
   public async create(stock: Stock): Promise<Stock> {
     return this.StockService.create(stock);
   }
 
-  public async import(files: string[]): Promise<ResultMessageDTO[]> {
-    return this.StockService.import(files);
+  public async import(
+    files: string[],
+    userId: string
+  ): Promise<ResultMessageDTO[]> {
+    return this.StockService.import(files, userId);
   }
 
   public async createLatestQuote(
@@ -35,15 +41,17 @@ export default class ProductController {
     return this.StockService.updateLatestQuote(latestQuote);
   }
 
-  public async getAllGrouped(
+  public async getAllGroupedByDateAndUserId(
     date: Date,
     isLatestQuote = false,
-    isCurrentPosition = false
+    isCurrentPosition = false,
+    userId: string
   ): Promise<Position[]> {
-    return this.StockService.getAllGrouped(
+    return this.StockService.getAllGroupedByDateAndUserId(
       date,
       isLatestQuote,
-      isCurrentPosition
+      isCurrentPosition,
+      userId
     );
   }
 }
