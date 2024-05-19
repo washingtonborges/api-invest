@@ -604,6 +604,7 @@ export default class StockService {
     if (oldLatestQuote) {
       oldLatestQuote.date = latestQuote.date;
       oldLatestQuote.unit = latestQuote.unit;
+      oldLatestQuote.from = latestQuote.from;
       return this.latestQuoteRepository.updateAndSave(oldLatestQuote);
     }
     return this.latestQuoteRepository.createAndSave(latestQuote);
