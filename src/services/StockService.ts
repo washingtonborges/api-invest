@@ -234,7 +234,7 @@ export default class StockService {
 
     let positions = Array.from(positionMap.values());
     positions = this.filterStocks(date, positions);
-    if (isLatestQuote) {
+    if (isLatestQuote && date.getFullYear() !== new Date().getFullYear()) {
       positions = await this.addLatestQuote(positions, date.getFullYear());
     }
     if (isCurrentPosition) {
