@@ -392,8 +392,7 @@ export default class StockService {
       );
 
       if (latestQuote === undefined) {
-        await this.waitRandomTime(7, 13);
-        await this.waitRandomTime(2, 8);
+        await this.waitRandomTime(1, 3);
         const latest = await this.getLatestQuotes(position.symbol, year);
         if (latest.date !== null && latest.date !== undefined) {
           const newLatestQuote: LatestQuote = {
@@ -444,7 +443,11 @@ export default class StockService {
       latestQuote = await this.getHistoricalPriceByInfomoney(symbol, year);
     }
     if (!latestQuote) {
-      latestQuote = {} as Latest;
+      latestQuote = {
+        date: new Date(`${year}-12-31`),
+        unit: 0,
+        from: '404 - Not found'
+      } as Latest;
     }
     return latestQuote;
   }
@@ -462,9 +465,16 @@ export default class StockService {
       if (data.length === 0) {
         return undefined;
       }
+
+      const latestItem = data.reduce((latest, current) => {
+        return new Date(latest.date) > new Date(current.date)
+          ? latest
+          : current;
+      });
+
       const latest: Latest = {
-        date: data[0].date,
-        unit: data[0].close,
+        date: latestItem.date,
+        unit: parseFloat(latestItem.close.toFixed(2)),
         from: 'YahooFinance'
       } as Latest;
       return latest;
@@ -493,7 +503,9 @@ export default class StockService {
 
       const dates = Object.keys(data);
       const targetDate = dates.find(
-        date => new Date(date).getFullYear() === year
+        date =>
+          new Date(date).getFullYear() === year &&
+          new Date(date).getMonth() === 12
       );
 
       if (!targetDate) {
@@ -530,11 +542,16 @@ export default class StockService {
       if (data.length === 0) {
         throw new Error('Dados não encontrados na resposta da API.');
       }
-      const closingPrice = data[0].close;
+
+      const latestItem = data.reduce((latest: any, current: any) => {
+        return new Date(latest.priceDate) > new Date(current.priceDate)
+          ? latest
+          : current;
+      });
 
       const latest: Latest = {
-        date: new Date(data[0].priceDate),
-        unit: parseFloat(closingPrice),
+        date: new Date(latestItem.priceDate),
+        unit: parseFloat(latestItem.close),
         from: 'IEXCloud'
       } as Latest;
 
@@ -565,10 +582,17 @@ export default class StockService {
         if (response.data === '') {
           return undefined;
         }
-        const data = response.data.pop();
+        const latestItem = response.data.reduce((latest: any, current: any) => {
+          const currentTimestamp = parseInt(current[0].timestamp, 10) * 1000;
+          const latestTimestamp = parseInt(latest[0].timestamp, 10) * 1000;
+          return new Date(latestTimestamp) > new Date(currentTimestamp)
+            ? latest
+            : current;
+        });
+
         const latest: Latest = {
-          date: parse(data[0].display, 'dd/MM/yyyy', new Date()),
-          unit: parseFloat(data[2].replace(/\./g, '').replace(',', '.')),
+          date: parse(latestItem[0].display, 'dd/MM/yyyy', new Date()),
+          unit: parseFloat(latestItem[2].replace(/\./g, '').replace(',', '.')),
           from: 'Infomoney'
         } as Latest;
         return latest;
