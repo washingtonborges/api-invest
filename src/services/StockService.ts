@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import { parse } from 'date-fns';
 import yahooFinance from 'yahoo-finance2';
+import * as cheerio from 'cheerio';
+import moment from 'moment';
 import Stock from '../database/models/Stock';
 import StockRepository from '../repositories/StockRepository';
 import LatestQuoteRepository from '../repositories/LatestQuoteRepository';
@@ -13,6 +15,9 @@ import LatestQuote from '../database/models/LatestQuote';
 import Position from '../models/Position';
 import History from '../models/History';
 import Latest from '../models/Latest';
+import DividendsHistory from '../database/models/DividendsHistory';
+import Dividend from '../database/models/Dividend';
+import DividendsHistoryRepository from '../repositories/DividendsHistoryRepository';
 
 dotenv.config();
 
@@ -20,6 +25,8 @@ export default class StockService {
   private stockRepository = new StockRepository();
 
   private latestQuoteRepository = new LatestQuoteRepository();
+
+  private dividendsHistoryRepository = new DividendsHistoryRepository();
 
   private invoiceService = new InvoiceService();
 
@@ -598,6 +605,8 @@ export default class StockService {
     latestQuote: LatestQuote
   ): Promise<LatestQuote> {
     const year = latestQuote.date.getFullYear();
+    this.scrapeStatusInvest();
+    return;
     const oldLatestQuote = await this.latestQuoteRepository.getBySymbolAndYear(
       latestQuote.symbol,
       year
@@ -619,5 +628,55 @@ export default class StockService {
 
   public async getYearsByUserId(userId: string): Promise<number[]> {
     return this.stockRepository.getYearsByUserId(userId);
+  }
+
+  async scrapeStatusInvest() {
+    const url = 'https://statusinvest.com.br/fundos-imobiliarios/btal11';
+
+    try {
+      const { data } = await axios.get(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+        }
+      });
+
+      const $ = cheerio.load(data);
+
+      const inputElement = $('#results');
+
+      if (inputElement.length > 0) {
+        const jsonString = inputElement.val() as string;
+
+        try {
+          const jsonObject = JSON.parse(jsonString);
+
+          const dividendsHistory = new DividendsHistory();
+          dividendsHistory.symbol = 'BTAL11';
+          dividendsHistory.update = new Date();
+
+          const dividends = jsonObject.map(
+            // eslint-disable-next-line no-shadow
+            (data: { ed: string; pd: string; v: number }) => {
+              const dividend = new Dividend();
+              dividend.limit = parse(data.ed, 'dd/MM/yyyy', new Date());
+              dividend.payment = parse(data.pd, 'dd/MM/yyyy', new Date());
+              dividend.value = data.v;
+              dividend.dividendsHistory = dividendsHistory;
+              return dividend;
+            }
+          );
+
+          dividendsHistory.dividend = dividends;
+          this.dividendsHistoryRepository.createAndSave(dividendsHistory);
+        } catch (error) {
+          console.error('Erro ao fazer o parse do JSON:', error);
+        }
+      } else {
+        console.log('Elemento input com id "results" não encontrado.');
+      }
+    } catch (error) {
+      console.error('Erro ao acessar a página:', error);
+    }
   }
 }
