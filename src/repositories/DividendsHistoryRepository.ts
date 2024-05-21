@@ -18,6 +18,22 @@ export default class DividendsHistoryRepository extends Repository<
     return dividendsHistory;
   }
 
+  public async getBySymbolAndDate(symbol: string): Promise<boolean> {
+    const repository = getCustomRepository(DividendsHistoryRepository);
+    const currentDate = new Date();
+    const result = await repository.find({
+      symbol
+    });
+
+    const filteredResults = result.filter(
+      entry =>
+        entry.update.getFullYear() === currentDate.getFullYear() &&
+        entry.update.getMonth() === currentDate.getMonth() &&
+        entry.update.getDay() === currentDate.getDay()
+    );
+    return filteredResults.length > 0;
+  }
+
   public async createAndSave(obj: DividendsHistory): Promise<DividendsHistory> {
     const repository = getCustomRepository(DividendsHistoryRepository);
     return repository.save(obj);

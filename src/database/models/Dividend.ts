@@ -6,7 +6,7 @@ import {
   ObjectIdColumn,
   ObjectID
 } from 'typeorm';
-import { DividendsHistory } from './DividendsHistory';
+import DividendsHistory from './DividendsHistory';
 
 @Entity()
 export default class Dividend {
@@ -25,9 +25,6 @@ export default class Dividend {
   @Column()
   value: number;
 
-  @ManyToOne(
-    () => DividendsHistory,
-    (dividendsHistory: { dividend: any }) => dividendsHistory.dividend
-  )
+  @ManyToOne(() => DividendsHistory)
   dividendsHistory: DividendsHistory;
 }

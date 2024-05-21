@@ -605,7 +605,7 @@ export default class StockService {
     latestQuote: LatestQuote
   ): Promise<LatestQuote> {
     const year = latestQuote.date.getFullYear();
-    this.scrapeStatusInvest();
+    this.scrapeStatusInvest(latestQuote.symbol);
     return;
     const oldLatestQuote = await this.latestQuoteRepository.getBySymbolAndYear(
       latestQuote.symbol,
@@ -630,8 +630,15 @@ export default class StockService {
     return this.stockRepository.getYearsByUserId(userId);
   }
 
-  async scrapeStatusInvest() {
-    const url = 'https://statusinvest.com.br/fundos-imobiliarios/btal11';
+  async scrapeStatusInvest(symbol: string) {
+    const exist = await this.dividendsHistoryRepository.getBySymbolAndDate(
+      symbol
+    );
+    if (exist) {
+      return;
+    }
+
+    const url = `https://statusinvest.com.br/fundos-imobiliarios/${symbol}`;
 
     try {
       const { data } = await axios.get(url, {
@@ -652,7 +659,7 @@ export default class StockService {
           const jsonObject = JSON.parse(jsonString);
 
           const dividendsHistory = new DividendsHistory();
-          dividendsHistory.symbol = 'BTAL11';
+          dividendsHistory.symbol = symbol;
           dividendsHistory.update = new Date();
 
           const dividends = jsonObject.map(
@@ -662,7 +669,6 @@ export default class StockService {
               dividend.limit = parse(data.ed, 'dd/MM/yyyy', new Date());
               dividend.payment = parse(data.pd, 'dd/MM/yyyy', new Date());
               dividend.value = data.v;
-              dividend.dividendsHistory = dividendsHistory;
               return dividend;
             }
           );

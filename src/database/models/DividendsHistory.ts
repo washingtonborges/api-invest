@@ -6,7 +6,7 @@ import {
   ObjectID,
   ObjectIdColumn
 } from 'typeorm';
-import { Dividend } from './Dividend';
+import Dividend from './Dividend';
 
 @Entity()
 export default class DividendsHistory {
@@ -22,12 +22,9 @@ export default class DividendsHistory {
   @Column({ type: 'date' })
   update: Date;
 
-  @OneToMany(
-    () => Dividend,
-    (dividend: { DividendsHistory: any }) => dividend.DividendsHistory,
-    {
-      cascade: true
-    }
-  )
+  @OneToMany(() => Dividend, dividend => dividend.dividendsHistory, {
+    cascade: true,
+    eager: true
+  })
   dividend: Dividend[];
 }
