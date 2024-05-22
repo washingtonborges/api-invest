@@ -18,6 +18,8 @@ import Latest from '../models/Latest';
 import DividendsHistory from '../database/models/DividendsHistory';
 import Dividend from '../database/models/Dividend';
 import DividendsHistoryRepository from '../repositories/DividendsHistoryRepository';
+import DividendBlacklistRepository from '../repositories/DividendsBlacklistRepository';
+import DividendBlacklist from '../database/models/DividendBlacklist';
 
 dotenv.config();
 
@@ -27,6 +29,8 @@ export default class StockService {
   private latestQuoteRepository = new LatestQuoteRepository();
 
   private dividendsHistoryRepository = new DividendsHistoryRepository();
+
+  private dividendBlacklistRepository = new DividendBlacklistRepository();
 
   private invoiceService = new InvoiceService();
 
@@ -605,8 +609,6 @@ export default class StockService {
     latestQuote: LatestQuote
   ): Promise<LatestQuote> {
     const year = latestQuote.date.getFullYear();
-    this.scrapeStatusInvest(latestQuote.symbol);
-    return;
     const oldLatestQuote = await this.latestQuoteRepository.getBySymbolAndYear(
       latestQuote.symbol,
       year
@@ -630,15 +632,17 @@ export default class StockService {
     return this.stockRepository.getYearsByUserId(userId);
   }
 
-  async scrapeStatusInvest(symbol: string) {
-    const exist = await this.dividendsHistoryRepository.getBySymbolAndDate(
-      symbol
-    );
-    if (exist) {
+  async searchAndSaveDividendsHistory(symbol: string) {
+    const hasProblem = await this.dividendHasProblem(symbol);
+    if (hasProblem) {
       return;
     }
 
-    const url = `https://statusinvest.com.br/fundos-imobiliarios/${symbol}`;
+    const objBlacklist = new DividendBlacklist();
+    objBlacklist.symbol = symbol;
+    objBlacklist.start = new Date();
+
+    const url = this.getUrlStatusInvest(symbol);
 
     try {
       const { data } = await axios.get(url, {
@@ -658,31 +662,85 @@ export default class StockService {
         try {
           const jsonObject = JSON.parse(jsonString);
 
+          const last = await this.dividendsHistoryRepository.getLatestUpdate(
+            symbol
+          );
+
+          let dividends = jsonObject;
+          if (last !== undefined) {
+            dividends = jsonObject.filter((filter: { ed: string }) => {
+              const limitDate = parse(filter.ed, 'dd/MM/yyyy', new Date());
+
+              const isAfter = moment(limitDate).isAfter(
+                moment(last.update),
+                'day'
+              );
+
+              return isAfter;
+            });
+          }
+
           const dividendsHistory = new DividendsHistory();
           dividendsHistory.symbol = symbol;
           dividendsHistory.update = new Date();
 
-          const dividends = jsonObject.map(
-            // eslint-disable-next-line no-shadow
-            (data: { ed: string; pd: string; v: number }) => {
+          dividends = dividends.map(
+            (dividendRaw: { ed: string; pd: string; v: number }) => {
               const dividend = new Dividend();
-              dividend.limit = parse(data.ed, 'dd/MM/yyyy', new Date());
-              dividend.payment = parse(data.pd, 'dd/MM/yyyy', new Date());
-              dividend.value = data.v;
+              dividend.limit = parse(dividendRaw.ed, 'dd/MM/yyyy', new Date());
+              dividend.payment = parse(
+                dividendRaw.pd,
+                'dd/MM/yyyy',
+                new Date()
+              );
+              dividend.value = dividendRaw.v;
               return dividend;
             }
           );
 
-          dividendsHistory.dividend = dividends;
-          this.dividendsHistoryRepository.createAndSave(dividendsHistory);
+          if (dividends.length > 0) {
+            dividendsHistory.dividend = dividends;
+            this.dividendsHistoryRepository.createAndSave(dividendsHistory);
+          }
         } catch (error) {
-          console.error('Erro ao fazer o parse do JSON:', error);
+          this.dividendBlacklistRepository.createAndSave(objBlacklist);
+          console.error('Error fail parse JSON:', error);
         }
       } else {
-        console.log('Elemento input com id "results" não encontrado.');
+        this.dividendBlacklistRepository.createAndSave(objBlacklist);
+        console.log('Not found: input id "results".');
       }
     } catch (error) {
-      console.error('Erro ao acessar a página:', error);
+      this.dividendBlacklistRepository.createAndSave(objBlacklist);
+      if (axios.isAxiosError(error)) {
+        const errorMessage = `Error request website ${url} - AxiosError: ${error.message}`;
+        console.error(errorMessage);
+      } else {
+        console.error(`Error request website ${url} - ${error}`);
+      }
     }
+  }
+
+  public getUrlStatusInvest(symbol: string): string {
+    let path = 'acoes';
+    if (this.isFIISymbol(symbol)) {
+      path = 'fundos-imobiliarios';
+    }
+    return `${process.env.STATUSINVEST_URL}/${path}/${symbol}`;
+  }
+
+  public isFIISymbol(symbol: string): boolean {
+    const fiiRegex = /^[A-Za-z]{4}11$/;
+    return fiiRegex.test(symbol);
+  }
+
+  public async dividendHasProblem(symbol: string): Promise<boolean> {
+    const hadResearchToday = await this.dividendsHistoryRepository.getBySymbolAndDate(
+      symbol
+    );
+    const isBlacklist = await this.dividendBlacklistRepository.isBlacklist(
+      symbol
+    );
+    return hadResearchToday || isBlacklist;
   }
 }

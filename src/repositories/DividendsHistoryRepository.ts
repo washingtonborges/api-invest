@@ -1,4 +1,9 @@
-import { EntityRepository, Repository, getCustomRepository } from 'typeorm';
+import {
+  EntityRepository,
+  Repository,
+  getCustomRepository,
+  getRepository
+} from 'typeorm';
 import { ObjectId } from 'mongodb';
 import DividendsHistory from '../database/models/DividendsHistory';
 
@@ -32,6 +37,19 @@ export default class DividendsHistoryRepository extends Repository<
         entry.update.getDay() === currentDate.getDay()
     );
     return filteredResults.length > 0;
+  }
+
+  public async getLatestUpdate(
+    symbol: string
+  ): Promise<DividendsHistory | undefined> {
+    const repository = getRepository(DividendsHistory);
+
+    const result = await repository.findOne({
+      where: { symbol },
+      order: { update: 'DESC' }
+    });
+
+    return result;
   }
 
   public async createAndSave(obj: DividendsHistory): Promise<DividendsHistory> {
