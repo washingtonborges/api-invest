@@ -25,6 +25,9 @@ export default class Dividend {
   @Column()
   value: number;
 
-  @ManyToOne(() => DividendsHistory)
+  @ManyToOne(
+    () => DividendsHistory,
+    dividendsHistory => dividendsHistory.dividend
+  )
   dividendsHistory: DividendsHistory;
 }

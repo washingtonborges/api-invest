@@ -16,11 +16,15 @@ export default class DividendsHistoryRepository extends Repository<
     return repository.findOne({ _id: new ObjectId(id) });
   }
 
-  public async getBySymbol(symbol: string): Promise<DividendsHistory> {
+  public async getBySymbol(
+    symbol: string
+  ): Promise<DividendsHistory | undefined> {
     const repository = getCustomRepository(DividendsHistoryRepository);
-    const result = await repository.find({ symbol });
-    const dividendsHistory = result[0];
-    return dividendsHistory;
+    const result = repository.findOne({
+      where: { symbol },
+      relations: ['dividend']
+    });
+    return result;
   }
 
   public async getBySymbolAndDate(symbol: string): Promise<boolean> {

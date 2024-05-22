@@ -74,4 +74,38 @@ export default class Stockepository extends Repository<Stock> {
     const result = await stockRepository.aggregate(pipeline).toArray();
     return result.map(item => item.year);
   }
+
+  public async getSymbolByDateAndUserId(
+    date: Date,
+    userId: string
+  ): Promise<string[]> {
+    const stockRepository = getMongoRepository(Stock);
+    const pipeline = [
+      {
+        $match: {
+          userId,
+          date: {
+            $lte: date
+          }
+        }
+      },
+      {
+        $group: {
+          _id: '$symbol'
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      },
+      {
+        $project: {
+          _id: 0,
+          symbol: '$_id'
+        }
+      }
+    ];
+
+    const result = await stockRepository.aggregate(pipeline).toArray();
+    return result.map(item => item.symbol);
+  }
 }

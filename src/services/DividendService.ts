@@ -9,11 +9,44 @@ import DividendBlacklist from '../database/models/DividendBlacklist';
 import DividendsHistory from '../database/models/DividendsHistory';
 import Dividend from '../database/models/Dividend';
 import DividendBlacklistRepository from '../repositories/DividendsBlacklistRepository';
+import StockService from './StockService';
 
 export default class DividendService {
   private dividendsHistoryRepository = new DividendsHistoryRepository();
 
   private dividendBlacklistRepository = new DividendBlacklistRepository();
+
+  private stockService = new StockService();
+
+  async getAllByDateAndUserId(
+    date: Date,
+    userId: string
+  ): Promise<DividendsHistory[]> {
+    const symbols = await this.stockService.getSymbolByDateAndUserId(
+      date,
+      userId
+    );
+    const dividends = await Promise.all(
+      symbols.map(async symbol => {
+        const result = await this.searchAndSaveDividendsHistory(symbol);
+        let dividend = new DividendsHistory();
+        dividend.symbol = symbol;
+        if (result instanceof AppError) {
+          const resultGet = await this.dividendsHistoryRepository.getBySymbol(
+            symbol
+          );
+          if (resultGet !== undefined) {
+            dividend = resultGet;
+          }
+        } else if (result instanceof DividendsHistory) {
+          dividend = result;
+        }
+        return dividend;
+      })
+    );
+
+    return dividends;
+  }
 
   async searchAndSaveDividendsHistory(
     symbol: string

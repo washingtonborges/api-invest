@@ -27,6 +27,13 @@ export default class StockService {
     return this.stockRepository.getAllByUserId(userId);
   }
 
+  public async getAllByDateAndUserId(
+    date: Date,
+    userId: string
+  ): Promise<Stock[]> {
+    return this.stockRepository.getAllByDateAndUserId(date, userId);
+  }
+
   public async getByUserId(
     id: string,
     userId: string
@@ -619,5 +626,12 @@ export default class StockService {
 
   public async getYearsByUserId(userId: string): Promise<number[]> {
     return this.stockRepository.getYearsByUserId(userId);
+  }
+
+  public async getSymbolByDateAndUserId(
+    date: Date,
+    userId: string
+  ): Promise<string[]> {
+    return this.stockRepository.getSymbolByDateAndUserId(date, userId);
   }
 }
