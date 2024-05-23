@@ -13,6 +13,7 @@ import LatestQuote from '../database/models/LatestQuote';
 import Position from '../models/Position';
 import History from '../models/History';
 import Latest from '../models/Latest';
+import AssetService from './AssetService';
 
 dotenv.config();
 
@@ -22,6 +23,8 @@ export default class StockService {
   private latestQuoteRepository = new LatestQuoteRepository();
 
   private invoiceService = new InvoiceService();
+
+  private assetService = new AssetService();
 
   public async getAllByUserId(userId: string): Promise<Stock[]> {
     return this.stockRepository.getAllByUserId(userId);
@@ -254,7 +257,22 @@ export default class StockService {
         );
       });
     }
+    positions = await this.addAssetsProperties(positions);
     return positions;
+  }
+
+  private async addAssetsProperties(
+    positions: Position[]
+  ): Promise<Position[]> {
+    const result = await Promise.all(
+      positions.map(async (position: Position) => {
+        const asset = await this.assetService.getBySymbol(position.symbol);
+        position.name = asset?.name ?? '-';
+        position.cnpj = asset?.cnpj ?? '-';
+        return position;
+      })
+    );
+    return result;
   }
 
   private filterStocks(date: Date, positions: Position[]): Position[] {
@@ -330,6 +348,8 @@ export default class StockService {
   private getEmptyPosition(symbol: string, start: Date): Position {
     return {
       symbol,
+      name: '',
+      cnpj: '',
       quantity: 0,
       latest: {
         date: null,

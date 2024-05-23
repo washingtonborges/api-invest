@@ -8,9 +8,9 @@ import AssetRepository from '../repositories/AssetRepository';
 import Asset from '../database/models/Asset';
 import Dividend from '../database/models/Dividend';
 import BlacklistRepository from '../repositories/BlacklistRepository';
-import StockService from './StockService';
 import DividendRepository from '../repositories/DividendRepository';
 import Blacklist from '../database/models/Blacklist';
+import StockRepository from '../repositories/StockRepository';
 
 export default class AssetService {
   private assetRepository = new AssetRepository();
@@ -19,10 +19,10 @@ export default class AssetService {
 
   private dividendRepository = new DividendRepository();
 
-  private stockService = new StockService();
+  private stockRepository = new StockRepository();
 
   async getAllByDateAndUserId(date: Date, userId: string): Promise<Asset[]> {
-    const symbols = await this.stockService.getSymbolByDateAndUserId(
+    const symbols = await this.stockRepository.getSymbolByDateAndUserId(
       date,
       userId
     );
@@ -190,5 +190,9 @@ export default class AssetService {
     );
     const isBlacklist = await this.blacklistRepository.isBlacklist(symbol);
     return hadResearchToday || isBlacklist;
+  }
+
+  public async getBySymbol(symbol: string): Promise<Asset | undefined> {
+    return this.assetRepository.getBySymbol(symbol);
   }
 }
