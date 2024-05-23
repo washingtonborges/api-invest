@@ -2,12 +2,13 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ObjectIdColumn,
-  ObjectID
+  ObjectID,
+  ObjectIdColumn
 } from 'typeorm';
+import Dividend from './Dividend';
 
 @Entity()
-export default class DividendBlacklist {
+export default class Asset {
   @ObjectIdColumn()
   _id: ObjectID;
 
@@ -17,6 +18,15 @@ export default class DividendBlacklist {
   @Column()
   symbol: string;
 
+  @Column()
+  name: string;
+
+  @Column()
+  cnpj: string;
+
   @Column({ type: 'date' })
-  start: Date;
+  update: Date;
+
+  @Column()
+  dividend: Dividend[];
 }
